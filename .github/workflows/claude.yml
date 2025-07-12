@@ -12,7 +12,7 @@ on:
 jobs:
   claude-response:
     runs-on: ubuntu-latest
-    # 重要：実行条件を追加してAPI利用を制限
+    environment: claude-prod
     if: |
       (
         github.event_name == 'issue_comment' && 
@@ -21,7 +21,7 @@ jobs:
           github.event.comment.author_association == 'OWNER' ||
           github.event.comment.author_association == 'MEMBER' ||
           github.event.comment.author_association == 'COLLABORATOR' ||
-          github.actor == 'YOUR_GITHUB_USERNAME'
+          github.actor == 'hokar3361'
         )
       ) ||
       (
@@ -41,7 +41,7 @@ jobs:
       (
         github.event_name == 'issues' &&
         github.event.action == 'assigned' &&
-        github.event.assignee.login == 'YOUR_GITHUB_USERNAME'
+        github.event.assignee.login == 'hokar3361'
       )
     
     steps:
@@ -49,21 +49,9 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          
-          # カスタムトリガー設定
           trigger_phrase: "@claude"
-          
-          # アサイン時のトリガー（自分だけ）
           assignee_trigger: "hokar3361"
-          
-          # ラベルトリガー（承認されたもののみ）
           label_trigger: "claude-approved"
-          
-          # 会話ターン数を制限（コスト管理）
           max_turns: "5"
-          
-          # タイムアウト設定（長時間実行を防ぐ）
           timeout_minutes: 10
-          
-          # モデル指定（必要に応じて）
           model: "claude-3-7-sonnet-20250219"
