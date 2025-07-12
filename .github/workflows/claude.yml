@@ -59,4 +59,4 @@ jobs:
           label_trigger: "claude-approved"
           max_turns: "5"
           timeout_minutes: 10
-          model: "claude-4-opus"
+          model: "claude-opus-4-0"
