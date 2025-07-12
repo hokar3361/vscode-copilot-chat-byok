@@ -14,13 +14,40 @@ jobs:
     runs-on: ubuntu-latest
     environment: claude-prod
     if: |
-      # ... (既存のif文はそのまま)
+      (
+        github.event_name == 'issue_comment' && 
+        contains(github.event.comment.body, '@claude') &&
+        (
+          github.event.comment.author_association == 'OWNER' ||
+          github.event.comment.author_association == 'MEMBER' ||
+          github.event.comment.author_association == 'COLLABORATOR' ||
+          github.actor == 'hokar3361'
+        )
+      ) ||
+      (
+        github.event_name == 'pull_request_review_comment' &&
+        contains(github.event.comment.body, '@claude') &&
+        (
+          github.event.comment.author_association == 'OWNER' ||
+          github.event.comment.author_association == 'MEMBER' ||
+          github.event.comment.author_association == 'COLLABORATOR'
+        )
+      ) ||
+      (
+        github.event_name == 'issues' &&
+        github.event.action == 'labeled' &&
+        github.event.label.name == 'claude-approved'
+      ) ||
+      (
+        github.event_name == 'issues' &&
+        github.event.action == 'assigned' &&
+        github.event.assignee.login == 'hokar3361'
+      )
     
     steps:
-      # この部分を追加！
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 全履歴を取得
+          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
       
       - uses: anthropics/claude-code-action@beta
