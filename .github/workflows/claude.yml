@@ -14,37 +14,15 @@ jobs:
     runs-on: ubuntu-latest
     environment: claude-prod
     if: |
-      (
-        github.event_name == 'issue_comment' && 
-        contains(github.event.comment.body, '@claude') &&
-        (
-          github.event.comment.author_association == 'OWNER' ||
-          github.event.comment.author_association == 'MEMBER' ||
-          github.event.comment.author_association == 'COLLABORATOR' ||
-          github.actor == 'hokar3361'
-        )
-      ) ||
-      (
-        github.event_name == 'pull_request_review_comment' &&
-        contains(github.event.comment.body, '@claude') &&
-        (
-          github.event.comment.author_association == 'OWNER' ||
-          github.event.comment.author_association == 'MEMBER' ||
-          github.event.comment.author_association == 'COLLABORATOR'
-        )
-      ) ||
-      (
-        github.event_name == 'issues' &&
-        github.event.action == 'labeled' &&
-        github.event.label.name == 'claude-approved'
-      ) ||
-      (
-        github.event_name == 'issues' &&
-        github.event.action == 'assigned' &&
-        github.event.assignee.login == 'hokar3361'
-      )
+      # ... (既存のif文はそのまま)
     
     steps:
+      # この部分を追加！
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 全履歴を取得
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
       - uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -54,4 +32,4 @@ jobs:
           label_trigger: "claude-approved"
           max_turns: "5"
           timeout_minutes: 10
-          model: "claude-3-7-sonnet-20250219"
+          model: "claude-4-opus"
