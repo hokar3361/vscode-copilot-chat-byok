@@ -58,4 +58,5 @@ jobs:
           assignee_trigger: "hokar3361"
           label_trigger: "claude-approved"
           model: "claude-opus-4-0"
+          max_turns: "30"
           allowed_tools: "Bash,Edit,Read,Write,Glob,Grep,Replace,MultiEdit,Task,LS,TodoWrite,NotebookRead,NotebookEdit"
