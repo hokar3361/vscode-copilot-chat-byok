@@ -57,7 +57,5 @@ jobs:
           trigger_phrase: "@claude"
           assignee_trigger: "hokar3361"
           label_trigger: "claude-approved"
-          max_turns: "5"
-          timeout_minutes: 10
           model: "claude-opus-4-0"
           allowed_tools: "Bash,Edit,Read,Write,Glob,Grep,Replace,MultiEdit,Task,LS,TodoWrite,NotebookRead,NotebookEdit"
