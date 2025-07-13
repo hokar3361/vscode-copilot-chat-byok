@@ -16,31 +16,49 @@ import { generateUuid } from '../../../util/vs/base/common/uuid';
 import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
 import { BYOKAuthType, BYOKKnownModels, BYOKModelConfig, BYOKModelRegistry, chatModelInfoToProviderMetadata, isGlobalKeyConfig, resolveModelInfo } from '../common/byokProvider';
 import { anthropicMessagesToRawMessagesForLogging, apiMessageToAnthropicMessage } from './anthropicMessageConverter';
+import { BYOKError, ErrorMapper, ErrorContext, RetryStrategy } from '../../../byok/improvements/errorHandling';
 
 export class AnthropicBYOKModelRegistry implements BYOKModelRegistry {
 	public readonly authType = BYOKAuthType.GlobalApiKey;
 	public readonly name = 'Anthropic';
 	private _knownModels: BYOKKnownModels | undefined;
+	private _retryStrategy: RetryStrategy;
 
 	constructor(
 		@ILogService private readonly _logService: ILogService,
 		@IInstantiationService private readonly _instantiationService: IInstantiationService,
-	) { }
+	) {
+		this._retryStrategy = new RetryStrategy();
+	}
 
 	async getAllModels(apiKey: string): Promise<{ id: string; name: string }[]> {
+		const context = new ErrorContext(this.name, 'getAllModels');
+
 		try {
-			const client = new Anthropic({ apiKey });
-			const response = await client.models.list();
-			const modelList: { id: string; name: string }[] = [];
-			for (const model of response.data) {
-				if (this._knownModels && this._knownModels[model.id]) {
-					modelList.push({ id: model.id, name: this._knownModels[model.id].name });
+			return await this._retryStrategy.executeWithRetry(async () => {
+				const client = new Anthropic({ apiKey });
+				const response = await client.models.list();
+				const modelList: { id: string; name: string }[] = [];
+				for (const model of response.data) {
+					if (this._knownModels && this._knownModels[model.id]) {
+						modelList.push({ id: model.id, name: this._knownModels[model.id].name });
+					}
 				}
-			}
-			return modelList;
+				return modelList;
+			}, {
+				onRetry: (attempt, error, delay) => {
+					this._logService.logger.warn(`Anthropic getAllModels retry ${attempt}, waiting ${delay}ms: ${error.message}`);
+				}
+			});
 		} catch (error) {
-			this._logService.logger.error(error, `Error fetching available ${this.name} models`);
-			throw new Error(error.message ? error.message : error);
+			const byokError = ErrorMapper.mapAnthropicError(error);
+			ErrorContext.attach(byokError, context);
+
+			this._logService.logger.error(`Error fetching available ${this.name} models`, {
+				error: byokError.toJSON(),
+				context: context.toJSON()
+			});
+			throw byokError;
 		}
 	}
 
@@ -72,6 +90,7 @@ export class AnthropicBYOKModelRegistry implements BYOKModelRegistry {
 export class AnthropicChatProvider implements LanguageModelChatProvider {
 	private client: Anthropic;
 	private modelId: string;
+	private _retryStrategy: RetryStrategy;
 
 	constructor(
 		apiKey: string,
@@ -84,6 +103,7 @@ export class AnthropicChatProvider implements LanguageModelChatProvider {
 			apiKey
 		});
 		this.modelId = modelId;
+		this._retryStrategy = new RetryStrategy();
 	}
 
 	async provideLanguageModelResponse(
